@@ -1,6 +1,6 @@
 # BRAVO Mobile - Android Application
 
-Android application for the B.R.A.V.O (BT-Radio-Advanced-Visual-Orchestration) IoT system. This app connects to ESP32-based collar/dongle devices via USB or Bluetooth Low Energy (BLE), receives LoRa telemetry data, and displays GPS location information on an interactive map with offline support.
+Android application for the B.R.A.V.O (Beacon-Relay-Asset-View-Orchestration) IoT system. This app connects to ESP32-based collar/dongle devices via USB or Bluetooth Low Energy (BLE), receives LoRa telemetry data, and displays GPS location information on an interactive map with offline support.
 
 ## Features
 
@@ -50,7 +50,7 @@ app/src/main/java/com/bravo/mobile/
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/BT-Radio-Advanced-Visual-Orchestration/mobile.git
+git clone https://github.com/beacon-relay-asset-view-orchestration/mobile.git
 cd mobile
 ```
 
@@ -242,8 +242,8 @@ Contributions are welcome! Please:
 ## Support
 
 For issues, questions, or contributions, please visit:
-- GitHub Issues: https://github.com/BT-Radio-Advanced-Visual-Orchestration/mobile/issues
-- Main Project: https://github.com/BT-Radio-Advanced-Visual-Orchestration
+- GitHub Issues: https://github.com/beacon-relay-asset-view-orchestration/mobile/issues
+- Main Project: https://github.com/beacon-relay-asset-view-orchestration
 
 ## Roadmap
 

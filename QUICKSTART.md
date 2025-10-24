@@ -14,7 +14,7 @@ Get up and running with the BRAVO Mobile Android app in minutes!
 ### Step 1: Clone and Open Project (1 min)
 
 ```bash
-git clone https://github.com/BT-Radio-Advanced-Visual-Orchestration/mobile.git
+git clone https://github.com/beacon-relay-asset-view-orchestration/mobile.git
 cd mobile
 ```
 
@@ -156,7 +156,7 @@ If you don't have ESP32 hardware yet:
 
 ## Getting Help
 
-- **Issues**: https://github.com/BT-Radio-Advanced-Visual-Orchestration/mobile/issues
+- **Issues**: https://github.com/beacon-relay-asset-view-orchestration/mobile/issues
 - **Documentation**: README.md, PROJECT_STRUCTURE.md
 - **Code Examples**: Check activity implementations for usage patterns
 
