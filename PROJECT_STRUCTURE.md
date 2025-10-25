@@ -2,6 +2,19 @@
 
 This document provides an overview of the Android project structure for the BRAVO Mobile application.
 
+## System Architecture
+
+The BRAVO system uses a **relay-based architecture** for LoRa communication:
+
+```
+[GPS Collar/Dongle] --LoRa--> [ESP32 Relay] --USB/BLE--> [Mobile App]
+   (Transmitter)              (LoRa Receiver)          (This Android App)
+```
+
+**Key Point**: The mobile phone does NOT receive LoRa radio signals directly. LoRa information is only accessible through:
+1. **ESP32 Relay Device**: Receives LoRa transmissions and forwards data via USB or BLE
+2. **API/Dashboard**: Future alternative for accessing telemetry data remotely
+
 ## Directory Structure
 
 ```
@@ -86,14 +99,14 @@ mobile/
 
 **BLEConnectionService**
 - Foreground service for BLE connectivity
-- Manages connection to ESP32 via Bluetooth
-- Receives LoRa telemetry data
+- Manages connection to ESP32 relay via Bluetooth
+- Receives LoRa telemetry data forwarded from the relay
 - Broadcasts data to UI
 
 **LoRaReceiverService**
 - Foreground service for USB connectivity
-- USB serial communication with ESP32
-- LoRa packet reception and parsing
+- USB serial communication with ESP32 relay
+- Receives LoRa packets forwarded by the relay
 - Telemetry data distribution
 
 **UsbBroadcastReceiver**
@@ -104,10 +117,11 @@ mobile/
 ### Libraries (Core Logic)
 
 **LoRaReceiver**
-- Low-level LoRa packet reception
+- Receives LoRa packet data from ESP32 relay via USB/BLE
 - Packet parsing and validation
 - Event-based listener pattern
 - Support for custom packet formats
+- **Note**: Does NOT receive LoRa radio directly; processes forwarded data
 
 **TelemetryParser**
 - Converts LoRa packets to telemetry data
@@ -127,13 +141,14 @@ mobile/
 **TelemetryData**
 - GPS coordinates (lat/lon/alt)
 - Speed and movement data
-- Signal strength (RSSI/SNR)
+- Signal strength (RSSI/SNR) from LoRa transmission
 - Battery level
 - Timestamp and device ID
+- **Source**: Data originates from GPS collars, transmitted via LoRa to ESP32 relay, then forwarded to phone
 
 **LoRaPacket**
-- Raw packet data
-- Signal metadata
+- Raw packet data forwarded from ESP32 relay
+- Signal metadata from LoRa reception
 - Frequency and spreading factor
 - Reception timestamp
 
@@ -149,13 +164,15 @@ mobile/
 
 ### 1. Dual Connectivity (BLE/USB)
 - **Files**: `BLEConnectionService.java`, `LoRaReceiverService.java`
-- **Purpose**: Flexible connection options to ESP32 collar/dongle
+- **Purpose**: Flexible connection options to ESP32 relay device
 - **Dependencies**: Nordic BLE library, USB Serial for Android
+- **Note**: Connects to relay, not directly to LoRa collars
 
 ### 2. LoRa Telemetry Reception
 - **Files**: `LoRaReceiver.java`, `TelemetryParser.java`
-- **Purpose**: Receive and parse GPS data from LoRa network
+- **Purpose**: Receive and parse GPS data forwarded from ESP32 relay
 - **Formats**: JSON and binary packet formats supported
+- **Data Path**: Collar/Dongle → LoRa → ESP32 Relay → USB/BLE → Phone
 
 ### 3. Map Visualization
 - **Files**: `MapActivity.java`, `MapVisualization.java`

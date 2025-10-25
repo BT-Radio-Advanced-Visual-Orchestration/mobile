@@ -1,16 +1,38 @@
 # BRAVO Mobile - Android Application
 
-Android application for the B.R.A.V.O (Beacon-Relay-Asset-View-Orchestration) IoT system. This app connects to ESP32-based collar/dongle devices via USB or Bluetooth Low Energy (BLE), receives LoRa telemetry data, and displays GPS location information on an interactive map with offline support.
+Android application for the B.R.A.V.O (Beacon-Relay-Asset-View-Orchestration) IoT system. This app connects to ESP32-based relay devices via USB or Bluetooth Low Energy (BLE) to access LoRa telemetry data, and displays GPS location information on an interactive map with offline support.
+
+**Important**: This mobile app does NOT receive LoRa radio signals directly. LoRa information is only accessible on the phone through:
+- **ESP32 Relay Device**: The phone connects to an ESP32 device (via USB or BLE) which receives LoRa transmissions from collars/dongles
+- **API/Dashboard**: Alternative access through a web API or dashboard interface (future feature)
 
 ## Features
 
-- **Dual Connection Support**: Connect to ESP32 devices via USB or BLE
-- **LoRa Telemetry Reception**: Receive and parse GPS telemetry data transmitted via LoRa
+- **Dual Connection Support**: Connect to ESP32 relay devices via USB or BLE
+- **LoRa Telemetry Reception**: Access GPS telemetry data transmitted via LoRa through the ESP32 relay
 - **Interactive Map Visualization**: Display real-time GPS tracking on OpenStreetMap
 - **Offline Map Support**: View maps without internet connectivity using cached tiles
 - **Real-time Telemetry Display**: View latitude, longitude, altitude, speed, signal strength, and battery level
 - **Background Services**: Continuous data reception via foreground services
 - **GPS Path Tracking**: Visual trail of device movement on the map
+
+## Architecture Overview
+
+The BRAVO system uses a **relay architecture** for LoRa communication:
+
+```
+[GPS Collar/Dongle] --LoRa Radio--> [ESP32 Relay] --USB/BLE--> [Android Phone]
+                                          ^
+                                          |
+                                     Receives LoRa
+                                     transmissions
+```
+
+The mobile phone **cannot receive LoRa radio directly**. Instead:
+1. GPS collar/dongle devices transmit location data via LoRa radio
+2. An ESP32 relay device receives these LoRa transmissions
+3. The mobile app connects to the ESP32 relay (via USB or BLE)
+4. Telemetry data is forwarded from the relay to the phone
 
 ## Architecture
 
@@ -36,6 +58,8 @@ app/src/main/java/com/bravo/mobile/
 └── utils/             # Utility Classes
     └── Constants.java
 ```
+
+**Data Flow**: LoRa packets are received by the ESP32 relay device and forwarded to the phone via USB or BLE connection.
 
 ## Prerequisites
 
@@ -101,17 +125,21 @@ Or use Android Studio:
 
 1. Launch the BRAVO Mobile app
 2. Tap "Connect via Bluetooth"
-3. Select your ESP32 device from the list (devices starting with "ESP32")
+3. Select your ESP32 relay device from the list (devices starting with "ESP32")
 4. Wait for connection confirmation
-5. Telemetry data will automatically appear on the main screen
+5. Telemetry data from LoRa collars will automatically appear on the main screen
+
+**Note**: The ESP32 relay must be within BLE range and actively receiving LoRa transmissions.
 
 ### Connecting via USB
 
-1. Connect ESP32 collar/dongle to your Android device using an OTG cable
+1. Connect ESP32 relay device to your Android device using an OTG cable
 2. Launch the BRAVO Mobile app
 3. Tap "Connect via USB"
 4. Grant USB permission when prompted
-5. Telemetry data will automatically appear on the main screen
+5. Telemetry data from LoRa collars will automatically appear on the main screen
+
+**Note**: The ESP32 relay must be receiving LoRa transmissions from GPS collars/dongles for data to appear.
 
 ### Viewing GPS Map
 
@@ -179,10 +207,12 @@ The app supports two telemetry formats:
 ### Testing on Hardware
 
 For best results, test with:
-- ESP32 DevKit with LoRa module (SX1276/SX1278)
-- GPS module connected to ESP32
+- ESP32 DevKit with LoRa module (SX1276/SX1278) configured as a relay
+- GPS collar/dongle with LoRa transmitter
 - Android device with BLE 4.0+ support
 - USB OTG cable for USB testing
+
+**System Setup**: The ESP32 relay device should be configured to receive LoRa transmissions and forward them via serial (USB) or BLE to the mobile app.
 
 ### Debugging
 
@@ -212,10 +242,12 @@ adb logcat -s BLEConnectionService LoRaReceiverService MainActivity MapActivity
 - Zoom out and pan to refresh tiles
 
 ### No Telemetry Data
-- Verify ESP32 is transmitting data
+- Verify ESP32 relay is receiving LoRa transmissions
+- Verify GPS collar/dongle is transmitting via LoRa
 - Check serial baud rate matches (115200)
-- Ensure LoRa frequency and settings match
+- Ensure LoRa frequency and settings match between collar and relay
 - Review packet format matches expected structure
+- Check that collar/dongle is within LoRa range of the relay
 
 ## Dependencies
 
