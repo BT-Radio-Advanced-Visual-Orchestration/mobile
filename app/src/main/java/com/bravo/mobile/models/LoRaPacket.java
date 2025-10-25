@@ -1,8 +1,16 @@
 package com.bravo.mobile.models;
 
 /**
- * Represents a raw LoRa packet received from ESP32
- * This is parsed into TelemetryData
+ * Represents a raw LoRa packet forwarded from ESP32 relay device.
+ * 
+ * Data Flow: LoRa Transmitter → ESP32 Relay (receives LoRa) → USB/BLE → This packet
+ * 
+ * This packet is then parsed into TelemetryData for display.
+ * 
+ * NOTE: The phone does NOT receive LoRa radio directly. The ESP32 relay:
+ * 1. Receives the LoRa transmission with its LoRa module
+ * 2. Forwards the packet data to the phone via USB or BLE
+ * 3. RSSI/SNR values reflect the LoRa signal strength at the relay, not the phone
  */
 public class LoRaPacket {
     private byte[] rawData;

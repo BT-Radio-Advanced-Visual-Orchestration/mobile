@@ -2,6 +2,19 @@
 
 Get up and running with the BRAVO Mobile Android app in minutes!
 
+## Understanding the System
+
+**Important**: The BRAVO mobile app connects to an **ESP32 relay device**, not directly to LoRa radio. 
+
+```
+GPS Collar → LoRa Radio → ESP32 Relay → USB/BLE → Your Phone
+```
+
+The phone receives telemetry data that has been:
+1. Transmitted via LoRa from GPS collars/dongles
+2. Received by an ESP32 relay device with LoRa module
+3. Forwarded to the phone via USB or BLE connection
+
 ## Prerequisites Checklist
 
 - [ ] Android Studio installed (Arctic Fox or later)
@@ -56,18 +69,22 @@ When you first launch the app:
 
 ### Via Bluetooth (BLE)
 
-1. Ensure ESP32 is powered on and advertising
+1. Ensure ESP32 relay is powered on and advertising
 2. Tap "Connect via Bluetooth" button
-3. Select your ESP32 device from the list
+3. Select your ESP32 relay device from the list
 4. Wait for "Connected" status
+
+**Note**: The ESP32 must be configured as a LoRa relay and within BLE range.
 
 ### Via USB
 
-1. Connect ESP32 to Android device using OTG cable
+1. Connect ESP32 relay to Android device using OTG cable
 2. Launch the app
 3. Tap "Connect via USB" button
 4. Grant USB permission when prompted
 5. Connection should establish automatically
+
+**Note**: The ESP32 relay must be receiving LoRa transmissions from GPS collars for data to appear.
 
 ## Understanding the UI
 
@@ -94,6 +111,10 @@ If you don't have ESP32 hardware yet:
 2. Connection attempts will show "No device found"
 3. Map can be viewed and navigated
 4. Mock data can be added for testing (see MapActivity.updateMapWithMockData)
+
+**To test the full system**, you need:
+- ESP32 relay device with LoRa receiver module
+- GPS collar/dongle with LoRa transmitter (or use for testing)
 
 ## Troubleshooting Quick Fixes
 
@@ -164,8 +185,8 @@ If you don't have ESP32 hardware yet:
 
 This is a complete Android project with:
 - ✅ Activities for UI (MainActivity, MapActivity)
-- ✅ Services for BLE and USB connections
-- ✅ LoRa packet parser
+- ✅ Services for BLE and USB connections to ESP32 relay
+- ✅ LoRa packet parser (for forwarded data)
 - ✅ Telemetry data models
 - ✅ Map visualization with offline support
 - ✅ Comprehensive documentation
@@ -173,11 +194,13 @@ This is a complete Android project with:
 ## What's Not Included
 
 You'll need to provide:
-- ESP32 hardware with LoRa module
-- GPS module connected to ESP32
-- Firmware for ESP32 to send telemetry data
+- ESP32 relay device with LoRa receiver module (SX1276/SX1278)
+- GPS collar/dongle with LoRa transmitter
+- Firmware for ESP32 relay to receive LoRa and forward via BLE/USB
 - Google Maps API key (optional, OSMDroid works without it)
 - App icons (using Android defaults currently)
+
+**Note**: The phone cannot receive LoRa directly - it must connect to an ESP32 relay.
 
 ## Ready to Dive Deeper?
 

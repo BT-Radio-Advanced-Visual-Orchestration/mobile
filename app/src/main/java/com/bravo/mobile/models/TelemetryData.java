@@ -3,8 +3,16 @@ package com.bravo.mobile.models;
 import java.util.Date;
 
 /**
- * Data model for LoRa telemetry received from ESP32 collar/dongle
- * Contains GPS location, signal strength, and other sensor data
+ * Data model for LoRa telemetry received from ESP32 relay device.
+ * 
+ * Data Flow: GPS Collar/Dongle → LoRa transmission → ESP32 Relay → USB/BLE → This App
+ * 
+ * Contains GPS location, signal strength, and other sensor data.
+ * 
+ * NOTE: The mobile phone does NOT receive LoRa radio directly. This data is:
+ * 1. Transmitted via LoRa from GPS collars/dongles
+ * 2. Received by ESP32 relay device with LoRa module
+ * 3. Forwarded to the phone via USB or BLE connection
  */
 public class TelemetryData {
     private double latitude;
