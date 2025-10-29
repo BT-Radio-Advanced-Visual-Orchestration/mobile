@@ -1,6 +1,6 @@
-# BRAVO Mobile - Android Application
+# B.R.A.V.O. Mobile - Android Application
 
-Android application for the B.R.A.V.O (Beacon-Relay-Asset-View-Orchestration) IoT system. This app connects to ESP32-based relay devices via USB or Bluetooth Low Energy (BLE) to access LoRa telemetry data, and displays GPS location information on an interactive map with offline support.
+Android application for the B.R.A.V.O. (Beacon-Relay-Asset-View-Orchestration) IoT system. This app connects to ESP32-based relay devices via USB or Bluetooth Low Energy (BLE) to access LoRa telemetry data, and displays GPS location information on an interactive map with offline support.
 
 **Important**: This mobile app does NOT receive LoRa radio signals directly. LoRa information is only accessible on the phone through:
 - **ESP32 Relay Device**: The phone connects to an ESP32 device (via USB or BLE) which receives LoRa transmissions from collars/dongles
