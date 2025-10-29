@@ -18,7 +18,7 @@ Android application for the B.R.A.V.O. (Beacon-Relay-Asset-View-Orchestration) I
 
 ## Architecture Overview
 
-The BRAVO system uses a **relay architecture** for LoRa communication:
+The B.R.A.V.O. system uses a **relay architecture** for LoRa communication:
 
 ```
 [GPS Collar/Dongle] --LoRa Radio--> [ESP32 Relay] --USB/BLE--> [Android Phone]
@@ -123,7 +123,7 @@ Or use Android Studio:
 
 ### Connecting via Bluetooth (BLE)
 
-1. Launch the BRAVO Mobile app
+1. Launch the B.R.A.V.O. Mobile app
 2. Tap "Connect via Bluetooth"
 3. Select your ESP32 relay device from the list (devices starting with "ESP32")
 4. Wait for connection confirmation
@@ -261,7 +261,7 @@ adb logcat -s BLEConnectionService LoRaReceiverService MainActivity MapActivity
 
 ## License
 
-This project is part of the B.R.A.V.O IoT system. Please refer to the main repository for licensing information.
+This project is part of the B.R.A.V.O. IoT system. Please refer to the main repository for licensing information.
 
 ## Contributing
 
@@ -289,4 +289,4 @@ Future enhancements:
 
 ## Credits
 
-Developed for the B.R.A.V.O IoT system project.
+Developed for the B.R.A.V.O. IoT system project.
