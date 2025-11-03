@@ -1,6 +1,8 @@
-# B.R.A.V.O. Mobile - Android Application
+# B.R.A.V.O. Mobile - Cross-Platform Application
 
-Android application for the B.R.A.V.O. (Beacon-Relay-Asset-View-Orchestration) IoT system. This app connects to ESP32-based relay devices via USB or Bluetooth Low Energy (BLE) to access LoRa telemetry data, and displays GPS location information on an interactive map with offline support.
+Cross-platform mobile application for the B.R.A.V.O. (Beacon-Relay-Asset-View-Orchestration) IoT system. This app supports both **Android** and **iOS** devices and connects to ESP32-based relay devices via USB or Bluetooth Low Energy (BLE) to access LoRa telemetry data, and displays GPS location information on an interactive map with offline support.
+
+The application uses the **Strategy Pattern** to provide platform-specific implementations while maximizing code reuse across platforms.
 
 **Important**: This mobile app does NOT receive LoRa radio signals directly. LoRa information is only accessible on the phone through:
 - **ESP32 Relay Device**: The phone connects to an ESP32 device (via USB or BLE) which receives LoRa transmissions from collars/dongles
@@ -8,13 +10,28 @@ Android application for the B.R.A.V.O. (Beacon-Relay-Asset-View-Orchestration) I
 
 ## Features
 
+### Core Features (Both Platforms)
 - **Dual Connection Support**: Connect to ESP32 relay devices via USB or BLE
 - **LoRa Telemetry Reception**: Access GPS telemetry data transmitted via LoRa through the ESP32 relay
-- **Interactive Map Visualization**: Display real-time GPS tracking on OpenStreetMap
+- **Interactive Map Visualization**: Display real-time GPS tracking on maps
 - **Offline Map Support**: View maps without internet connectivity using cached tiles
 - **Real-time Telemetry Display**: View latitude, longitude, altitude, speed, signal strength, and battery level
-- **Background Services**: Continuous data reception via foreground services
+- **Background Services**: Continuous data reception via foreground services (Android) or background tasks (iOS)
 - **GPS Path Tracking**: Visual trail of device movement on the map
+
+### Platform-Specific Features
+**Android:**
+- USB OTG support for direct ESP32 connections
+- Google Maps integration (optional, OpenStreetMap by default)
+
+**iOS:**
+- CoreBluetooth for BLE
+- MFi accessory support for USB connections
+
+**Map Visualization (Both Platforms):**
+- OpenStreetMap for consistent cross-platform map experience
+- Offline map support with cached tiles
+- Real-time GPS tracking and path visualization
 
 ## Architecture Overview
 
@@ -36,38 +53,70 @@ The mobile phone **cannot receive LoRa radio directly**. Instead:
 
 ## Architecture
 
-The project follows Android best practices with a modular structure:
+The project follows a **cross-platform architecture** using the **Strategy Pattern** to abstract platform-specific implementations:
 
 ```
-app/src/main/java/com/bravo/mobile/
-├── activities/          # UI Activities
-│   ├── MainActivity.java
-│   ├── MapActivity.java
-│   └── SettingsActivity.java
-├── services/           # Background Services
-│   ├── BLEConnectionService.java
-│   ├── LoRaReceiverService.java
-│   └── UsbBroadcastReceiver.java
-├── libs/              # Core Libraries
-│   ├── LoRaReceiver.java
-│   ├── TelemetryParser.java
-│   └── MapVisualization.java
-├── models/            # Data Models
-│   ├── TelemetryData.java
-│   └── LoRaPacket.java
-└── utils/             # Utility Classes
-    └── Constants.java
+mobile/
+├── app/                           # Android Application
+│   └── src/main/java/com/bravo/mobile/
+│       ├── activities/            # Android UI Activities
+│       ├── services/              # Android Services (refactored with strategies)
+│       ├── platform/              # Platform abstraction layer
+│       │   ├── interfaces/        # Platform-agnostic interfaces
+│       │   │   ├── IConnectionStrategy.java
+│       │   │   ├── IConnectionListener.java
+│       │   │   ├── IPlatformService.java
+│       │   │   └── IPermissionManager.java
+│       │   ├── android/           # Android-specific implementations
+│       │   │   ├── AndroidBLEStrategy.java
+│       │   │   └── AndroidUSBStrategy.java
+│       │   ├── factory/           # Strategy factory
+│       │   │   └── ConnectionStrategyFactory.java
+│       │   ├── PlatformType.java
+│       │   └── PlatformDetector.java
+│       ├── libs/                  # Core Libraries (shared logic)
+│       ├── models/                # Data Models (shared structures)
+│       └── utils/                 # Utility Classes
+│
+└── ios/                           # iOS Application
+    └── BRAVOMobile/
+        ├── Platform/              # iOS-specific implementations
+        │   ├── IConnectionStrategy.swift
+        │   ├── IConnectionListener.swift
+        │   ├── IOSBLEStrategy.swift
+        │   └── IOSUSBStrategy.swift
+        ├── Models/                # Shared data models
+        │   └── TelemetryData.swift
+        ├── Services/              # iOS Services
+        └── Views/                 # iOS Views
+
 ```
 
-**Data Flow**: LoRa packets are received by the ESP32 relay device and forwarded to the phone via USB or BLE connection.
+**Key Design Principles:**
+- **Platform-agnostic interfaces** define the contract for all implementations
+- **Strategy Pattern** selects appropriate implementation at runtime
+- **Factory Pattern** creates platform-specific strategies
+- **Shared data models** ensure consistency across platforms
+
+**Data Flow**: LoRa packets are received by the ESP32 relay device and forwarded to the phone via USB or BLE connection. The strategy pattern handles the platform-specific communication details.
+
+For detailed architecture documentation, see [CROSS_PLATFORM_ARCHITECTURE.md](CROSS_PLATFORM_ARCHITECTURE.md).
 
 ## Prerequisites
 
+### For Android Development
 - Android Studio Arctic Fox or later
 - Android SDK 26+ (Android 8.0 Oreo)
 - Target SDK 34 (Android 14)
 - Java 8+
 - Gradle 8.0+
+
+### For iOS Development
+- Xcode 14.0 or later
+- iOS 14.0+ deployment target
+- Swift 5.0+
+- CocoaPods or Swift Package Manager
+- macOS for iOS development
 
 ## Setup Instructions
 
@@ -78,6 +127,8 @@ git clone https://github.com/beacon-relay-asset-view-orchestration/mobile.git
 cd mobile
 ```
 
+### For Android Development
+
 ### 2. Open in Android Studio
 
 1. Launch Android Studio
@@ -85,9 +136,11 @@ cd mobile
 3. Navigate to the cloned repository and select the project folder
 4. Wait for Gradle sync to complete
 
-### 3. Configure Google Maps API Key (Optional)
+### 3. Map Configuration
 
-If you want to use Google Maps instead of OpenStreetMap:
+**Default**: The app uses **OpenStreetMap** on both Android and iOS for a consistent cross-platform experience.
+
+**Optional - Google Maps (Android only)**: If you prefer Google Maps on Android:
 
 1. Get an API key from [Google Cloud Console](https://console.cloud.google.com/)
 2. Open `app/src/main/AndroidManifest.xml`
@@ -98,6 +151,8 @@ If you want to use Google Maps instead of OpenStreetMap:
     android:name="com.google.android.geo.API_KEY"
     android:value="YOUR_ACTUAL_API_KEY" />
 ```
+
+**Note**: iOS uses OpenStreetMap to maintain consistency across platforms.
 
 ### 4. Build the Project
 
@@ -118,6 +173,15 @@ Or use Android Studio:
 - Menu: Run → Run 'app' (Shift+F10)
 
 **Note**: For USB connections, you must use a physical Android device with OTG support.
+
+### For iOS Development
+
+See the detailed iOS setup instructions in [ios/README.md](ios/README.md).
+
+Quick start:
+1. Open `ios/BRAVOMobile.xcodeproj` in Xcode
+2. Configure signing with your development team
+3. Build and run on a physical iOS device (BLE/USB require real hardware)
 
 ## Usage
 
@@ -277,15 +341,38 @@ For issues, questions, or contributions, please visit:
 - GitHub Issues: https://github.com/beacon-relay-asset-view-orchestration/mobile/issues
 - Main Project: https://github.com/beacon-relay-asset-view-orchestration
 
+## Cross-Platform Benefits
+
+The refactored architecture provides several key benefits:
+
+1. **Code Reuse**: Platform-agnostic interfaces and data models are shared across Android and iOS
+2. **Maintainability**: Changes to connection logic can be made in one place
+3. **Consistency**: Both platforms provide the same user experience and features
+4. **Testability**: Strategy pattern makes it easy to mock and test components
+5. **Extensibility**: New platforms can be added by implementing the interfaces
+6. **Flexibility**: Connection strategies can be swapped at runtime
+
+For detailed information about the cross-platform architecture, see [CROSS_PLATFORM_ARCHITECTURE.md](CROSS_PLATFORM_ARCHITECTURE.md).
+
+## Platform-Specific Documentation
+
+- **Android**: See this README for Android-specific details
+- **iOS**: See [ios/README.md](ios/README.md) for iOS-specific details
+- **Architecture**: See [CROSS_PLATFORM_ARCHITECTURE.md](CROSS_PLATFORM_ARCHITECTURE.md) for cross-platform design details
+
 ## Roadmap
 
 Future enhancements:
+- [x] Cross-platform support (Android + iOS)
+- [x] Strategy pattern for platform abstraction
 - [ ] Multi-device tracking
 - [ ] Historical telemetry data export
 - [ ] Advanced map features (heatmaps, geofencing)
 - [ ] Remote device configuration
 - [ ] Data analytics dashboard
 - [ ] Battery optimization improvements
+- [ ] Kotlin Multiplatform for shared business logic
+- [ ] Web dashboard integration
 
 ## Credits
 

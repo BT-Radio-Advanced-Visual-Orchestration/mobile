@@ -5,42 +5,30 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
-import android.hardware.usb.UsbDevice;
-import android.hardware.usb.UsbDeviceConnection;
-import android.hardware.usb.UsbManager;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
 
 import androidx.core.app.NotificationCompat;
 
-import com.bravo.mobile.libs.LoRaReceiver;
-import com.bravo.mobile.libs.TelemetryParser;
-import com.bravo.mobile.models.LoRaPacket;
 import com.bravo.mobile.models.TelemetryData;
-import com.hoho.android.usbserial.driver.UsbSerialDriver;
-import com.hoho.android.usbserial.driver.UsbSerialPort;
-import com.hoho.android.usbserial.driver.UsbSerialProber;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
+import com.bravo.mobile.platform.factory.ConnectionStrategyFactory;
+import com.bravo.mobile.platform.interfaces.IConnectionListener;
+import com.bravo.mobile.platform.interfaces.IConnectionStrategy;
 
 /**
- * Foreground service for receiving LoRa telemetry via USB connection to ESP32
+ * Refactored foreground service for receiving LoRa telemetry via USB connection to ESP32
+ * Uses strategy pattern for platform-agnostic connection management
  * Manages USB serial connection and data parsing
  */
 public class LoRaReceiverService extends Service {
     private static final String CHANNEL_ID = "LoRaReceiverChannel";
     private static final int NOTIFICATION_ID = 2;
-    private static final int BAUD_RATE = 115200;
     
     public static final String ACTION_DATA_RECEIVED = "com.bravo.mobile.ACTION_LORA_DATA_RECEIVED";
     public static final String EXTRA_TELEMETRY = "telemetry_data";
     
-    private UsbManager usbManager;
-    private UsbSerialPort serialPort;
-    private LoRaReceiver loRaReceiver;
+    private IConnectionStrategy connectionStrategy;
     private final IBinder binder = new LocalBinder();
     private DataReceivedListener dataReceivedListener;
 
@@ -58,9 +46,36 @@ public class LoRaReceiverService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        usbManager = (UsbManager) getSystemService(USB_SERVICE);
-        loRaReceiver = new LoRaReceiver();
-        setupLoRaReceiver();
+        
+        // Create USB connection strategy using factory
+        connectionStrategy = ConnectionStrategyFactory.createUSBStrategy(this);
+        
+        // Initialize the strategy
+        connectionStrategy.initialize();
+        
+        // Set up listener for connection events
+        connectionStrategy.setConnectionListener(new IConnectionListener() {
+            @Override
+            public void onConnectionStateChanged(boolean connected) {
+                if (dataReceivedListener != null) {
+                    dataReceivedListener.onConnectionStateChanged(connected);
+                }
+            }
+            
+            @Override
+            public void onTelemetryReceived(TelemetryData data) {
+                if (dataReceivedListener != null) {
+                    dataReceivedListener.onTelemetryReceived(data);
+                }
+                broadcastTelemetryData(data);
+            }
+            
+            @Override
+            public void onError(String error) {
+                // Log error or notify user
+            }
+        });
+        
         createNotificationChannel();
     }
 
@@ -77,122 +92,22 @@ public class LoRaReceiverService extends Service {
     }
 
     /**
-     * Setup LoRa receiver callbacks
-     */
-    private void setupLoRaReceiver() {
-        loRaReceiver.addListener(new LoRaReceiver.LoRaPacketListener() {
-            @Override
-            public void onPacketReceived(LoRaPacket packet) {
-                TelemetryData telemetry = TelemetryParser.parse(packet);
-                if (telemetry != null) {
-                    if (dataReceivedListener != null) {
-                        dataReceivedListener.onTelemetryReceived(telemetry);
-                    }
-                    broadcastTelemetryData(telemetry);
-                }
-            }
-
-            @Override
-            public void onError(String error) {
-                // Log error or notify user
-            }
-        });
-    }
-
-    /**
      * Connect to USB device
      */
     public boolean connectToUSB() {
-        List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber()
-                .findAllDrivers(usbManager);
-        
-        if (availableDrivers.isEmpty()) {
+        if (connectionStrategy == null) {
             return false;
         }
-
-        // Get the first available driver (ESP32)
-        UsbSerialDriver driver = availableDrivers.get(0);
-        UsbDeviceConnection connection = usbManager.openDevice(driver.getDevice());
-        
-        if (connection == null) {
-            return false;
-        }
-
-        try {
-            serialPort = driver.getPorts().get(0);
-            serialPort.open(connection);
-            serialPort.setParameters(BAUD_RATE, 8, UsbSerialPort.STOPBITS_1, 
-                                    UsbSerialPort.PARITY_NONE);
-            
-            // Start receiving data
-            startReceiving();
-            
-            if (dataReceivedListener != null) {
-                dataReceivedListener.onConnectionStateChanged(true);
-            }
-            
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    /**
-     * Start receiving data from USB serial port
-     */
-    private void startReceiving() {
-        if (serialPort == null) {
-            return;
-        }
-
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                byte[] buffer = new byte[256];
-                while (serialPort != null && serialPort.isOpen()) {
-                    try {
-                        int bytesRead = serialPort.read(buffer, 1000);
-                        if (bytesRead > 0) {
-                            // Create LoRa packet and process
-                            byte[] data = new byte[bytesRead];
-                            System.arraycopy(buffer, 0, data, 0, bytesRead);
-                            
-                            LoRaPacket packet = new LoRaPacket(data, 0, 0);
-                            TelemetryData telemetry = TelemetryParser.parse(packet);
-                            
-                            if (telemetry != null) {
-                                if (dataReceivedListener != null) {
-                                    dataReceivedListener.onTelemetryReceived(telemetry);
-                                }
-                                broadcastTelemetryData(telemetry);
-                            }
-                        }
-                    } catch (IOException e) {
-                        break;
-                    }
-                }
-            }
-        }).start();
+        // Pass null for device identifier to auto-detect first available device
+        return connectionStrategy.connect(null);
     }
 
     /**
      * Disconnect from USB device
      */
     public void disconnect() {
-        if (serialPort != null) {
-            try {
-                serialPort.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            serialPort = null;
-        }
-        
-        loRaReceiver.stopReceiving();
-        
-        if (dataReceivedListener != null) {
-            dataReceivedListener.onConnectionStateChanged(false);
+        if (connectionStrategy != null) {
+            connectionStrategy.disconnect();
         }
     }
 
@@ -200,7 +115,7 @@ public class LoRaReceiverService extends Service {
      * Check if connected to USB device
      */
     public boolean isConnected() {
-        return serialPort != null && serialPort.isOpen();
+        return connectionStrategy != null && connectionStrategy.isConnected();
     }
 
     /**
@@ -248,6 +163,8 @@ public class LoRaReceiverService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        disconnect();
+        if (connectionStrategy != null) {
+            connectionStrategy.cleanup();
+        }
     }
 }

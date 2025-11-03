@@ -4,12 +4,6 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothGatt;
-import android.bluetooth.BluetoothGattCallback;
-import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothProfile;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.Build;
@@ -17,29 +11,24 @@ import android.os.IBinder;
 
 import androidx.core.app.NotificationCompat;
 
-import com.bravo.mobile.libs.LoRaReceiver;
-import com.bravo.mobile.models.LoRaPacket;
 import com.bravo.mobile.models.TelemetryData;
-import com.bravo.mobile.libs.TelemetryParser;
+import com.bravo.mobile.platform.factory.ConnectionStrategyFactory;
+import com.bravo.mobile.platform.interfaces.IConnectionListener;
+import com.bravo.mobile.platform.interfaces.IConnectionStrategy;
 
 /**
- * Foreground service for managing BLE connection to ESP32 collar/dongle
+ * Refactored foreground service for managing BLE connection to ESP32 collar/dongle
+ * Uses strategy pattern for platform-agnostic connection management
  * Receives LoRa telemetry data via BLE and broadcasts it to the app
  */
 public class BLEConnectionService extends Service {
     private static final String CHANNEL_ID = "BLEConnectionChannel";
     private static final int NOTIFICATION_ID = 1;
     
-    // ESP32 Service and Characteristic UUIDs (placeholder - replace with actual UUIDs)
-    private static final String SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
-    private static final String CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
-    
     public static final String ACTION_DATA_RECEIVED = "com.bravo.mobile.ACTION_DATA_RECEIVED";
     public static final String EXTRA_TELEMETRY = "telemetry_data";
     
-    private BluetoothAdapter bluetoothAdapter;
-    private BluetoothGatt bluetoothGatt;
-    private LoRaReceiver loRaReceiver;
+    private IConnectionStrategy connectionStrategy;
     private final IBinder binder = new LocalBinder();
     private ConnectionStateListener connectionStateListener;
 
@@ -57,8 +46,36 @@ public class BLEConnectionService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        loRaReceiver = new LoRaReceiver();
+        
+        // Create BLE connection strategy using factory
+        connectionStrategy = ConnectionStrategyFactory.createBLEStrategy(this);
+        
+        // Initialize the strategy
+        connectionStrategy.initialize();
+        
+        // Set up listener for connection events
+        connectionStrategy.setConnectionListener(new IConnectionListener() {
+            @Override
+            public void onConnectionStateChanged(boolean connected) {
+                if (connectionStateListener != null) {
+                    connectionStateListener.onConnectionStateChanged(connected);
+                }
+            }
+            
+            @Override
+            public void onTelemetryReceived(TelemetryData data) {
+                if (connectionStateListener != null) {
+                    connectionStateListener.onTelemetryReceived(data);
+                }
+                broadcastTelemetryData(data);
+            }
+            
+            @Override
+            public void onError(String error) {
+                // Log error or notify user
+            }
+        });
+        
         createNotificationChannel();
     }
 
@@ -78,28 +95,18 @@ public class BLEConnectionService extends Service {
      * Connect to a BLE device by address
      */
     public boolean connectToDevice(String deviceAddress) {
-        if (bluetoothAdapter == null || deviceAddress == null) {
+        if (connectionStrategy == null) {
             return false;
         }
-
-        try {
-            BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceAddress);
-            bluetoothGatt = device.connectGatt(this, false, gattCallback);
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
+        return connectionStrategy.connect(deviceAddress);
     }
 
     /**
      * Disconnect from the BLE device
      */
     public void disconnect() {
-        if (bluetoothGatt != null) {
-            bluetoothGatt.disconnect();
-            bluetoothGatt.close();
-            bluetoothGatt = null;
+        if (connectionStrategy != null) {
+            connectionStrategy.disconnect();
         }
     }
 
@@ -107,7 +114,7 @@ public class BLEConnectionService extends Service {
      * Check if connected to a device
      */
     public boolean isConnected() {
-        return bluetoothGatt != null;
+        return connectionStrategy != null && connectionStrategy.isConnected();
     }
 
     /**
@@ -117,67 +124,7 @@ public class BLEConnectionService extends Service {
         this.connectionStateListener = listener;
     }
 
-    /**
-     * BLE GATT callback for handling connection events and data
-     */
-    private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
-        @Override
-        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-            if (newState == BluetoothProfile.STATE_CONNECTED) {
-                bluetoothGatt.discoverServices();
-                if (connectionStateListener != null) {
-                    connectionStateListener.onConnectionStateChanged(true);
-                }
-            } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                if (connectionStateListener != null) {
-                    connectionStateListener.onConnectionStateChanged(false);
-                }
-            }
-        }
 
-        @Override
-        public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-            if (status == BluetoothGatt.GATT_SUCCESS) {
-                // Enable notifications for the characteristic
-                // This is where you would set up to receive data from ESP32
-            }
-        }
-
-        @Override
-        public void onCharacteristicChanged(BluetoothGatt gatt, 
-                                           BluetoothGattCharacteristic characteristic) {
-            // Data received from ESP32
-            byte[] data = characteristic.getValue();
-            if (data != null && data.length > 0) {
-                processReceivedData(data);
-            }
-        }
-    };
-
-    /**
-     * Process received data from BLE
-     */
-    private void processReceivedData(byte[] data) {
-        try {
-            // Create LoRa packet from received data
-            LoRaPacket packet = new LoRaPacket(data, 0, 0);
-            
-            // Parse to telemetry data
-            TelemetryData telemetry = TelemetryParser.parse(packet);
-            
-            if (telemetry != null) {
-                // Notify listener
-                if (connectionStateListener != null) {
-                    connectionStateListener.onTelemetryReceived(telemetry);
-                }
-                
-                // Broadcast to app
-                broadcastTelemetryData(telemetry);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 
     /**
      * Broadcast telemetry data to the app
@@ -217,6 +164,8 @@ public class BLEConnectionService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        disconnect();
+        if (connectionStrategy != null) {
+            connectionStrategy.cleanup();
+        }
     }
 }
