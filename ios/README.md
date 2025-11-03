@@ -10,7 +10,7 @@ iOS application for the B.R.A.V.O. (Beacon-Relay-Asset-View-Orchestration) IoT s
 
 - **Dual Connection Support**: Connect to ESP32 relay devices via BLE or USB (MFi accessories)
 - **LoRa Telemetry Reception**: Access GPS telemetry data transmitted via LoRa through the ESP32 relay
-- **Interactive Map Visualization**: Display real-time GPS tracking on Apple Maps
+- **Interactive Map Visualization**: Display real-time GPS tracking on OpenStreetMap
 - **Offline Map Support**: View maps without internet connectivity using cached tiles
 - **Real-time Telemetry Display**: View latitude, longitude, altitude, speed, signal strength, and battery level
 - **Background Services**: Continuous data reception via background tasks
@@ -57,6 +57,14 @@ ios/BRAVOMobile/
 - iOS 14.0+ deployment target
 - Swift 5.0+
 - CocoaPods or Swift Package Manager
+
+## Map Implementation
+
+Both iOS and Android use **OpenStreetMap** for consistent cross-platform map visualization:
+- iOS implementation can use libraries like [Mapbox Maps SDK](https://github.com/mapbox/mapbox-maps-ios) or custom OpenStreetMap tile rendering
+- Provides offline map support with cached tiles
+- Consistent map appearance across all devices
+- No dependency on platform-specific mapping services
 
 ## Setup Instructions
 

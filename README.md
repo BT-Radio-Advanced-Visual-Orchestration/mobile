@@ -21,14 +21,17 @@ The application uses the **Strategy Pattern** to provide platform-specific imple
 
 ### Platform-Specific Features
 **Android:**
-- OpenStreetMap with OSMDroid
 - USB OTG support for direct ESP32 connections
-- Google Maps integration
+- Google Maps integration (optional, OpenStreetMap by default)
 
 **iOS:**
-- Apple Maps integration
 - CoreBluetooth for BLE
 - MFi accessory support for USB connections
+
+**Map Visualization (Both Platforms):**
+- OpenStreetMap for consistent cross-platform map experience
+- Offline map support with cached tiles
+- Real-time GPS tracking and path visualization
 
 ## Architecture Overview
 
@@ -133,9 +136,11 @@ cd mobile
 3. Navigate to the cloned repository and select the project folder
 4. Wait for Gradle sync to complete
 
-### 3. Configure Google Maps API Key (Optional)
+### 3. Map Configuration
 
-If you want to use Google Maps instead of OpenStreetMap:
+**Default**: The app uses **OpenStreetMap** on both Android and iOS for a consistent cross-platform experience.
+
+**Optional - Google Maps (Android only)**: If you prefer Google Maps on Android:
 
 1. Get an API key from [Google Cloud Console](https://console.cloud.google.com/)
 2. Open `app/src/main/AndroidManifest.xml`
@@ -146,6 +151,8 @@ If you want to use Google Maps instead of OpenStreetMap:
     android:name="com.google.android.geo.API_KEY"
     android:value="YOUR_ACTUAL_API_KEY" />
 ```
+
+**Note**: iOS uses OpenStreetMap to maintain consistency across platforms.
 
 ### 4. Build the Project
 
